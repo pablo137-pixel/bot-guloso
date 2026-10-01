@@ -3,7 +3,21 @@ from discord.ext import commands
 from groq import Groq
 import requests
 import os # Biblioteca para ler as chaves escondidas
+from flask import Flask
+from threading import Thread
 
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "O bot guloso está online e a enganar o sistema!"
+
+def run():
+    app.run(host='0.0.0.0', port=8080)
+
+def keep_alive():
+    t = Thread(target=run)
+    t.start()
 # Em vez de ter o texto colado aqui, ele vai puxar do servidor do Render!
 DISCORD_TOKEN = os.environ.get("DISCORD_TOKEN")
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
@@ -88,5 +102,5 @@ async def on_message(message):
         await message.channel.send(chat_response.choices[0].message.content)
 
     await bot.process_commands(message)
-
+keep_alive()
 bot.run(DISCORD_TOKEN)
