@@ -2,28 +2,33 @@ import discord
 from discord.ext import commands
 from groq import Groq
 import requests
-import os # Biblioteca para ler as chaves escondidas
+import os
+from datetime import timedelta # <-- Faltava isto para os castigos de tempo!
 from flask import Flask
 from threading import Thread
 
+# --- O DISFARCE DO FLASK (O tal site falso para o Render) ---
 app = Flask('')
 
 @app.route('/')
 def home():
     return "O bot guloso está online e a enganar o sistema!"
 
-def run():
-    app.run(host='0.0.0.0', port=8080)
+def run_server():
+    # O Render vai dar a porta certa, se não der, a gente usa a 8080
+    porta = int(os.environ.get('PORT', 8080))
+    app.run(host='0.0.0.0', port=porta)
 
 def keep_alive():
-    t = Thread(target=run)
+    t = Thread(target=run_server)
     t.start()
-# Em vez de ter o texto colado aqui, ele vai puxar do servidor do Render!
+
+
+# --- CONFIGURAÇÕES DO BOT ---
 DISCORD_TOKEN = os.environ.get("DISCORD_TOKEN")
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 
-# O resto do teu código continua igual para baixo...
-# O link do seu Firebase guloso
+# O link do teu Firebase guloso
 FIREBASE_URL = "https://batatadocegamer-bot-default-rtdb.firebaseio.com"
 
 intents = discord.Intents.default()
@@ -33,15 +38,16 @@ intents.members = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 groq_client = Groq(api_key=GROQ_API_KEY)
 
+
 # --- SISTEMA DE BANCO DE DADOS (FIREBASE) ---
 def get_user_data(user_id):
-    # Puxa os dados do cara lá do Firebase
+    # Puxa os dados do gajo lá do Firebase
     url = f"{FIREBASE_URL}/users/{user_id}.json"
     resposta = requests.get(url)
     dados = resposta.json()
     
     if dados is None:
-        # Se o cara não existir, cria ele com 1k bom e 0 ruim
+        # Se o gajo não existir, cria-o com 1k bom e 0 ruim
         novos_dados = {"good_points": 1000, "bad_points": 0}
         requests.put(url, json=novos_dados)
         return novos_dados
@@ -57,6 +63,7 @@ def add_bad_points(user_id, points):
     requests.patch(url, json={"bad_points": novos_pontos_ruins})
     
     return novos_pontos_ruins
+
 
 # --- EVENTOS DO BOT ---
 @bot.event
@@ -81,7 +88,7 @@ async def on_message(message):
     if is_toxic:
         total_bad = add_bad_points(message.author.id, 2500)
         await message.delete()
-        await message.channel.send(f"⚠️ {message.author.mention}, você falou merda. +2500 pontos ruins. (Total: {total_bad}/10000)")
+        await message.channel.send(f"⚠️ {message.author.mention}, falaste merda. +2500 pontos ruins. (Total: {total_bad}/10000)")
 
         if total_bad >= 10000:
             try:
@@ -102,8 +109,10 @@ async def on_message(message):
         await message.channel.send(chat_response.choices[0].message.content)
 
     await bot.process_commands(message)
+
+# --- A MÁGICA FINAL ---
+# 1. Primeiro ligamos o site falso em segundo plano
 keep_alive()
-def run():
-    # O Render vai dar a porta certa, se não der, a gente usa a 8080
-    porta = int(os.environ.get('PORT', 8080))
-    app.run(host='0.0.0.0', port=porta)
+
+# 2. Depois (E TEM DE SER NA ÚLTIMA LINHA) ligamos o bot com o Token!
+bot.run(DISCORD_TOKEN)
