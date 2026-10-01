@@ -103,4 +103,7 @@ async def on_message(message):
 
     await bot.process_commands(message)
 keep_alive()
-bot.run(DISCORD_TOKEN)
+def run():
+    # O Render vai dar a porta certa, se não der, a gente usa a 8080
+    porta = int(os.environ.get('PORT', 8080))
+    app.run(host='0.0.0.0', port=porta)
